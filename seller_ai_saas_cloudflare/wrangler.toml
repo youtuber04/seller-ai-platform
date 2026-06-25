@@ -1,0 +1,24 @@
+name = "seller-ai-saas-cloudflare"
+compatibility_date = "2026-06-25"
+
+# Cloudflare Pages Functions 사용 프로젝트입니다.
+# Pages 배포 시 아래 바인딩을 Cloudflare Dashboard에서 연결하세요.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "seller_ai_db"
+database_id = "YOUR_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "seller-ai-files"
+
+[vars]
+APP_NAME = "Seller AI"
+APP_ENV = "development"
+
+# secrets:
+# wrangler secret put OPENAI_API_KEY
+# wrangler secret put JWT_SECRET
+# wrangler secret put TOSS_SECRET_KEY
+# wrangler secret put STRIPE_SECRET_KEY
