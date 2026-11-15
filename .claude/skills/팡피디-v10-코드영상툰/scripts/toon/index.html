@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>오늘 밤 할까 — code toon</title>
+<style>
+  @font-face { font-family: "BHS"; src: url("fonts/BlackHanSans-Regular.ttf"); }
+  @font-face { font-family: "GA1"; src: url("fonts/GothicA1-ExtraBold.ttf"); }
+  @font-face { font-family: "DoHyeon"; src: url("fonts/DoHyeon-Regular.ttf"); }
+  html, body { margin: 0; background: #000; width: 1080px; height: 1920px; overflow: hidden; }
+  svg { display: block; }
+  .fx { font-family: "BHS"; }
+  .cap { font-family: "GA1"; }
+  .ttl { font-family: "BHS"; }
+  #warm { position: absolute; left: -9999px; }
+</style>
+</head>
+<body>
+<div id="warm"><span style="font-family:BHS">가</span><span style="font-family:GA1">가</span><span style="font-family:DoHyeon">가</span></div>
+<svg id="stage" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gNightWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c3060"/><stop offset="1" stop-color="#171a38"/></linearGradient>
+    <linearGradient id="gNightSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1540"/><stop offset="1" stop-color="#2b3f8c"/></linearGradient>
+    <linearGradient id="gWarmWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7d5a46"/><stop offset="1" stop-color="#4a3226"/></linearGradient>
+    <radialGradient id="gLampGlow"><stop offset="0" stop-color="#ffd98a" stop-opacity=".75"/><stop offset=".5" stop-color="#ffb35c" stop-opacity=".22"/><stop offset="1" stop-color="#ffb35c" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gSoftBlue"><stop offset="0" stop-color="#4b5aa8" stop-opacity=".9"/><stop offset="1" stop-color="#1d2550" stop-opacity="0"/></radialGradient>
+    <linearGradient id="gHall" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#14141c"/><stop offset="1" stop-color="#2a2a36"/></linearGradient>
+    <linearGradient id="gDoorLight" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe2a8"/><stop offset="1" stop-color="#f0a24f"/></linearGradient>
+    <linearGradient id="gGloom" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b2d3e"/><stop offset="1" stop-color="#0f1018"/></linearGradient>
+    <linearGradient id="gBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34447a"/><stop offset="1" stop-color="#151b33"/></linearGradient>
+    <linearGradient id="gTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".62"/><stop offset=".7" stop-color="#000" stop-opacity=".25"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+    <linearGradient id="gBot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset=".35" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>
+    <radialGradient id="gVig" cx=".5" cy=".5" r=".75"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></radialGradient>
+    <clipPath id="clipMirror"><rect x="640" y="430" width="400" height="900" rx="24"/></clipPath>
+    <filter id="blurX" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur stdDeviation="22 0"/></filter>
+    <filter id="whip" x="-20%" y="-5%" width="140%" height="110%"><feGaussianBlur id="whipBlur" stdDeviation="0 0"/></filter>
+    <filter id="boil" x="-2%" y="-2%" width="104%" height="104%"><feTurbulence id="boilNoise" type="fractalNoise" baseFrequency="0.03" numOctaves="1" seed="1"/><feDisplacementMap in="SourceGraphic" scale="3.2" xChannelSelector="R" yChannelSelector="G"/></filter>
+  </defs>
+  <g id="scene"></g>
+  <g id="overlay"></g>
+</svg>
+<script src="data.js"></script>
+<script src="lib.js"></script>
+<script src="scenes.js"></script>
+<script>
+const SCENE = document.getElementById("scene"), OVER = document.getElementById("overlay");
+const SEGS = DATA.segs;
+let CAPS = [];
+
+// ---- captions: one chunk on screen at a time, timed to the voice by character share ----
+const meas = document.createElement("canvas").getContext("2d");
+function wrap(txt, size) {
+  meas.font = `${size}px GA1`;
+  if (meas.measureText(txt).width <= 940) return [txt];
+  const sp = [...txt.matchAll(/ /g)].map((m) => m.index);
+  if (!sp.length) return [txt];
+  const mid = txt.length / 2; const cut = sp.reduce((a, b) => (Math.abs(b - mid) < Math.abs(a - mid) ? b : a));
+  return [txt.slice(0, cut), txt.slice(cut + 1)];
+}
+function buildCaptions() {
+  CAPS = [];
+  SEGS.forEach((s, i) => {
+    let parts = s.sub.split("\n").map((p) => p.trim());
+    if (s.thought) parts = parts.map((p) => "(" + p.replace(/^\(|\)$/g, "") + ")");
+    const tot = parts.reduce((a, p) => a + p.length, 0);
+    let t0 = s.start - 0.05; const span = s.end - s.start + 0.1;
+    const nextStart = i + 1 < SEGS.length ? SEGS[i + 1].show : DATA.outro_start;
+    parts.forEach((p, j) => {
+      const d = (span * p.length) / tot;
+      const end = j === parts.length - 1 ? Math.min(nextStart, s.end + 0.6) : t0 + d;
+      CAPS.push({ text: p, rows: wrap(p, 66), a: t0, b: end, kind: s.thought ? "t" : s.who });
+      t0 += d;
+    });
+  });
+  CAPS.push({ text: DATA.outro, rows: DATA.outro.split("\n"), a: DATA.outro_start + 0.15, b: DATA.total + 1, kind: "o" });
+}
+const CAP_FILL = { h: "#ffffff", w: "#ffb6d3", t: "#d3e2ff", o: "#fff3c4" };
+function captionSVG(t) {
+  const c = CAPS.find((c) => t >= c.a && t < c.b);
+  if (!c) return "";
+  const lt = t - c.a;
+  const sc = 0.9 + 0.1 * E.backOut(lt / 0.16, 2.2), op = clamp(lt / 0.08);
+  const rows = c.rows, lh = 84, y0 = 1296 - (rows.length - 1) * lh;
+  let s = "";
+  rows.forEach((r, i) => { s += `<text class="cap" x="0" y="${y0 + i * lh - 1250}" text-anchor="middle" font-size="66" fill="${CAP_FILL[c.kind]}" stroke="#111" stroke-width="15" paint-order="stroke" stroke-linejoin="round">${r}</text>`; });
+  return `<g transform="translate(540,1250) scale(${f2(sc)})" opacity="${f2(op)}">${s}</g>`;
+}
+function titleSVG() {
+  return `<rect width="1080" height="470" fill="url(#gTop)"/>` +
+    `<text class="ttl" x="540" y="262" text-anchor="middle" font-size="76" fill="#fff" stroke="#111" stroke-width="15" paint-order="stroke" stroke-linejoin="round">불 끄자마자 <tspan fill="#ff4d6d">“오늘 밤 할까?”</tspan></text>` +
+    `<text class="ttl" x="540" y="356" text-anchor="middle" font-size="76" fill="#fff" stroke="#111" stroke-width="15" paint-order="stroke" stroke-linejoin="round">묻는 아내의 진짜 속셈</text>`;
+}
+
+function renderAt(t) {
+  t = Math.max(0, Math.min(t, DATA.total - 1e-3));
+  const outro = t >= DATA.outro_start;
+  let seg = SEGS.find((s) => t >= s.show && t < s.hide) || SEGS[SEGS.length - 1];
+  let res, lt;
+  if (outro) { lt = t - DATA.outro_start; res = SCENES.outro(t, lt); }
+  else { lt = t - seg.show; res = SCENES[seg.scene](t, seg, lt, t - seg.start, seg.hide - seg.show); }
+  // camera: slow push + punch-in + shake on impact beats
+  let { s, cx, cy } = res.cam; let sx = 0, sy = 0;
+  if (res.punch !== undefined && res.punch >= 0 && res.punch < 0.5) {
+    const p = res.punch; s *= 1 + 0.14 * Math.pow(Math.max(0, 1 - p / 0.32), 2);
+    const amp = 16 * Math.max(0, 1 - p / 0.5); sx = amp * Math.sin(p * 95); sy = amp * Math.cos(p * 77);
+  }
+  let whipX = 0, blur = 0;
+  if (res.whipIn !== undefined && res.whipIn < 0.24) { const k = E.out3(res.whipIn / 0.24); whipX = (1 - k) * -520; blur = (1 - k) * 34; }
+  document.getElementById("whipBlur").setAttribute("stdDeviation", `${f2(blur)} 0`);
+  document.getElementById("boilNoise").setAttribute("seed", String(1 + (Math.floor(t * 12) % 97)));
+  const cam = `translate(${f2(540 + sx + whipX)},${f2(960 + sy)}) scale(${f2(s)}) translate(${-cx},${-cy})`;
+  let body = `<g transform="${cam}"${blur > 0.5 ? ' filter="url(#whip)"' : ""}><g filter="url(#boil)">${res.body}</g></g>`;
+  body += `<rect width="1080" height="1920" fill="url(#gVig)"/>`;
+  if (res.flash !== undefined && res.flash < 0.3) body += `<rect width="1080" height="1920" fill="#fff8e0" opacity="${f2(0.9 * (1 - res.flash / 0.3))}"/>`;
+  if (outro) body += `<rect width="1080" height="1920" fill="#000" opacity="${f2(lerp(0.65, 0.3, E.out3(lt / 0.35)))}"/>`;
+  if (t > DATA.total - 0.4) body += `<rect width="1080" height="1920" fill="#000" opacity="${f2(prog(t, DATA.total - 0.4, DATA.total))}"/>`;
+  SCENE.innerHTML = body;
+  OVER.innerHTML = titleSVG() + `<rect y="1020" width="1080" height="900" fill="url(#gBot)"/>` + captionSVG(t);
+}
+window.renderAt = renderAt;
+window.ready = document.fonts.ready.then(() => Promise.all(["BHS", "GA1", "DoHyeon"].map((f) => document.fonts.load(`40px ${f}`, "가나다")))).then(() => { buildCaptions(); renderAt(0); });
+// HyperFrames seek protocol: the frame is a pure function of time
+window.addEventListener("hf-seek", (e) => renderAt(e.detail.time));
+</script>
+</body>
+</html>
